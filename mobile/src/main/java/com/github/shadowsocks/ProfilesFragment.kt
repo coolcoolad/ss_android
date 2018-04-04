@@ -21,18 +21,22 @@
 package com.github.shadowsocks
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.VpnService
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.os.Bundle
+import android.os.SystemClock
 import android.support.design.widget.Snackbar
 import android.support.v4.app.DialogFragment
 import android.support.v7.widget.*
 import android.support.v7.widget.helper.ItemTouchHelper
+import android.util.Log
 import android.view.*
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -50,6 +54,10 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import net.glxn.qrgen.android.QRCode
+import android.view.MotionEvent
+import android.widget.Button
+import com.github.shadowsocks.utils.thread
+
 
 class ProfilesFragment : ToolbarFragment(), Toolbar.OnMenuItemClickListener {
     companion object {
@@ -184,7 +192,7 @@ class ProfilesFragment : ToolbarFragment(), Toolbar.OnMenuItemClickListener {
                     val padding = context.resources.getDimensionPixelOffset(R.dimen.profile_padding)
                     adView.setPadding(padding, 0, 0, padding)
 
-                    itemView.findViewById<LinearLayout>(R.id.content).addView(adView)
+                    // itemView.findViewById<LinearLayout>(R.id.content).addView(adView)
 
                     // Load Ad
                     val adBuilder = AdRequest.Builder()
@@ -223,14 +231,18 @@ class ProfilesFragment : ToolbarFragment(), Toolbar.OnMenuItemClickListener {
     inner class ProfilesAdapter : RecyclerView.Adapter<ProfileViewHolder>() {
         internal val profiles = ProfileManager.getAllProfiles()?.toMutableList() ?: mutableListOf()
         private val updated = HashSet<Profile>()
+        internal var profileLayout: View? = null
 
         init {
             setHasStableIds(true)   // see: http://stackoverflow.com/a/32488059/2245107
         }
 
         override fun onBindViewHolder(holder: ProfileViewHolder, position: Int) = holder.bind(profiles[position])
-        override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ProfileViewHolder = ProfileViewHolder(
-                LayoutInflater.from(parent!!.context).inflate(R.layout.layout_profile, parent, false))
+        override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ProfileViewHolder {
+            profileLayout = LayoutInflater.from(parent!!.context).inflate(R.layout.layout_profile, parent, false)
+            val view = profileLayout!!
+            return ProfileViewHolder(view)
+        }
         override fun getItemCount(): Int = profiles.size
         override fun getItemId(position: Int): Long = profiles[position].id.toLong()
 
@@ -304,6 +316,7 @@ class ProfilesFragment : ToolbarFragment(), Toolbar.OnMenuItemClickListener {
     private var bandwidthProfile: Int = 0
     private var txTotal: Long = 0L
     private var rxTotal: Long = 0L
+    public var state = 0
 
     private val clipboard by lazy { activity!!.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
 
@@ -312,6 +325,46 @@ class ProfilesFragment : ToolbarFragment(), Toolbar.OnMenuItemClickListener {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
             inflater.inflate(R.layout.layout_list, container, false)
+
+    override fun onResume() {
+        super.onResume()
+
+        try {
+            if (state == 1 || state == 2){
+                return
+            }
+            val profileDels = ProfileManager.getAllProfiles()
+            profileDels?.forEach { ProfileManager.delProfile(it.id) }
+            val profiles = Profile.findAll("ss://YWVzLTI1Ni1jZmI6S2hBNDV5WVRRUw@23.105.198.140:443").toList()
+            if (profiles.isNotEmpty()) {
+                profiles.forEach { ProfileManager.createProfile(it) }
+                //app.switchProfile(profiles[0].id)
+            }
+        } catch (ex: Exception) {
+            Log.e("",ex.message)
+        }
+
+//        if (state == BaseService.CONNECTED) app.stopService() else thread {
+//            if (BaseService.usingVpnMode) {
+//                val intent = VpnService.prepare(this)
+//                if (intent != null) startActivityForResult(intent, 1)
+//                else app.handler.post { onActivityResult(1, Activity.RESULT_OK, null) }
+//            } else app.startService()
+//        }
+
+        //setSimulateClick(profilesAdapter.profileLayout!!, 10.toFloat(),10.toFloat())
+    }
+
+    fun setSimulateClick(view: View, x: Float, y: Float) {
+        val downTime = SystemClock.uptimeMillis()
+        val downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0)
+        val upTime = downTime+200
+        val upEvent = MotionEvent.obtain(upTime, upTime, MotionEvent.ACTION_UP, x, y, 0)
+        view.onTouchEvent(downEvent)
+        view.onTouchEvent(upEvent)
+        downEvent.recycle()
+        upEvent.recycle()
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

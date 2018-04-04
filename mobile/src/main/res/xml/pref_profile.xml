@@ -27,7 +27,7 @@
                 android:key="sitekey"
                 app:pref_summaryHasText="%s"
                 android:singleLine="true"
-                android:title="@string/sitekey"/>
+                android:title="@string/sitekey" />
         <SimpleMenuPreference
                 android:key="encMethod"
                 android:entries="@array/enc_method_entry"

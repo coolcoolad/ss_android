@@ -31,6 +31,7 @@ import android.net.VpnService
 import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.os.Bundle
+import android.os.PersistableBundle
 import android.os.SystemClock
 import android.support.customtabs.CustomTabsIntent
 import android.support.design.widget.Snackbar
@@ -127,6 +128,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Interface, Drawe
 
     fun changeState(state: Int, msg: String? = null, animate: Boolean = false) {
         fab.changeState(state, animate)
+        ProfilesFragment.instance?.state = state
         when (state) {
             BaseService.CONNECTING -> statusText.setText(R.string.connecting)
             BaseService.CONNECTED -> statusText.setText(R.string.vpn_connected)

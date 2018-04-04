@@ -14,6 +14,7 @@ import com.github.shadowsocks.App.Companion.app
 import com.github.shadowsocks.JniHelper
 import java.net.InetAddress
 import java.net.URLConnection
+import java.util.*
 
 private val fieldChildFragmentManager by lazy {
     val field = Fragment::class.java.getDeclaredField("mChildFragmentManager")
